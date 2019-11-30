@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <title>Microsoft Cognitive Services Speech API</title>
+
+  <meta charset="utf-8" />
+  <script src="js/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#File").change(function (file) {
+                $("body").append(file.target.files[0]);
+                var url = window.URL.createObjectURL(file.target.files[0]);
+                $("#v")[0].src = url;
+                $("#v")[0].onload = function () {
+                    window.URL.revokeObjectURL(src);
+                };
+                $("#v").css({ "width": "100%", "height": "100%" });
+            });
+        });
+    </script>
+
+    <link href="css/style.css" rel="stylesheet" media="all">
+
+<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+
+<!--<link href="css/style.css" rel="stylesheet" media="all">  -->	
+
+</head>
+
+<body style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px;">
+
+  <!-- <uidiv> -->
+
+  <div id="warning">
+
+    <h1 style="font-weight:500;">Speech Recognition Speech SDK not found (microsoft.cognitiveservices.speech.sdk.bundle.js missing).</h1>
+
+  </div>
+
+  
+
+  <div id="content" style="display:none">
+
+    <table width="100%">
+
+      <tr>
+
+        <td></td>
+
+        <td>
+
+          <h1>
+
+            VideoView Control with Microsoft Azure Speech Service
+
+          </h1>
+
+        </td>
+
+      </tr>
+
+      <tr>
+
+        <td></td>
+
+        <td><button id="startRecognizeOnceAsyncButton">Start recognition</button></td>
+
+      </tr>
+
+      <tr>
+
+        <td align="right" valign="top"></td>
+
+        <td><textarea id="phraseDiv" style="display: inline-block;width:250px;height:50px"></textarea></td>
+
+      </tr>
+
+    </table>
+
+  </div>
+
+  <input id="File" type="file" id="file" />
+  <video id="v" controls ></video>
+
+
+  <p>
+      点击“选择文件”将你的mp4视频传递上来，即可享受语音控制功能哦~
+
+      <br>
+      
+      可以参考下面的提示命令
+      
+
+  </p>
+
+  <ul>
+      <li id="vidPlay">播放,开始，视频播放，start,begin,go</li>
+      <li id="vidStop">暂停,停止，视频暂停，停，stop</li>
+      <li id="vidReplay">重播，视频重播，视频重开，重新开始</li>
+      <li id="vidVolOn">音量开，音量打开</li>
+      <li id="vidVolOff">音量关，音量关闭</li>
+      <li id="vidVolInc">音量增加，音量增大，音量变大</li>
+      <li id="vidVolDec">音量减小，音量变小</li>
+  </ul>
+
+
+  <!-- </uidiv> -->
+
+
+
+  <!-- <speechsdkref> -->
+
+  <!-- Speech SDK reference sdk. -->
+
+  <script src="js/microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
+
+  <!-- </speechsdkref> -->
+
+  <!-- <quickstartcode> -->
+
+  <!-- Speech SDK USAGE -->
+
+  <script>
+
+    // status fields and start button in UI
+
+    var phraseDiv;
+
+    var startRecognizeOnceAsyncButton;
+
+
+
+    // subscription key and region for speech services.
+
+    var subscriptionKey, serviceRegion;
+
+    var authorizationToken;
+
+    var SpeechSDK;
+
+    var recognizer;
+
+    var video = document.getElementById('v');
+
+    var recStatus = document.getElementById('recStatus');
+
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+      startRecognizeOnceAsyncButton = document.getElementById("startRecognizeOnceAsyncButton");
+
+      subscriptionKey = document.getElementById("subscriptionKey");
+
+      serviceRegion = document.getElementById("serviceRegion");
+
+      phraseDiv = document.getElementById("phraseDiv");
+
+
+
+      startRecognizeOnceAsyncButton.addEventListener("click", function () {
+
+        startRecognizeOnceAsyncButton.disabled = true;
+
+        phraseDiv.innerHTML = "";
+
+
+
+        // if we got an authorization token, use the token. Otherwise use the provided subscription key
+
+        var speechConfig;
+
+        if (authorizationToken) {
+
+          speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, serviceRegion.value);
+
+        } else {
+
+          speechConfig = SpeechSDK.SpeechConfig.fromSubscription("f5f2061567454dac9ec268393ace74bc", "westus");
+
+        }
+
+
+
+        speechConfig.speechRecognitionLanguage = "zh-CN";
+
+        var audioConfig  = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+
+        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+
+
+        recognizer.recognizeOnceAsync(
+
+          function (result) {
+
+            startRecognizeOnceAsyncButton.disabled = false;
+
+            phraseDiv.innerHTML += result.text;
+
+            window.console.log(result);
+
+            // Simple function that checks existence of s in str
+            var userSaid = function(str, s) {
+
+                return str.indexOf(s) > -1;
+
+            }
+
+            // Highlights the relevant command that was recognised in the command list for display purposes
+                       
+            var highlightCommand = function(cmd) {
+                            
+              var el = document.getElementById(cmd);
+                            
+              el.setAttribute('data-state', 'highlight');
+                            
+              setTimeout(function() {
+                                
+                el.setAttribute('data-state', '');
+                            
+              }, 3000);
+                        
+            }
+
+                                    
+            // Process the results when they are returned from the recogniser
+                                
+              // Replay the video
+            
+              if (userSaid(result.text, '重')) {
+            
+                video.currentTime = 0;
+            
+                video.play();
+            
+                highlightCommand('vidReplay');
+            
+              }
+
+            
+              // Play the video
+            
+              else if (userSaid(result.text, '播放')) {
+            
+                video.play();
+            
+                highlightCommand('vidPlay');
+            
+              }
+
+              else if (userSaid(result.text, '开始')) {
+            
+                video.play();
+        
+                highlightCommand('vidPlay');
+        
+              }
+
+              else if (userSaid(result.text, 'Start')) {
+            
+                video.play();
+    
+                highlightCommand('vidPlay');
+    
+              }
+
+              else if (userSaid(result.text, 'Begin')) {
+            
+                video.play();
+
+                highlightCommand('vidPlay');
+
+              }
+
+              else if (userSaid(result.text, 'Go')) {
+            
+                video.play();
+
+                highlightCommand('vidPlay');
+
+              }
+            
+              // Stop the video
+            
+              else if (userSaid(result.text, '停')) {
+            
+                video.pause();
+            
+                highlightCommand('vidStop');
+            
+              }
+
+              else if (userSaid(result.text, 'Stop')) {
+            
+                video.pause();
+        
+                highlightCommand('vidStop');
+        
+              }
+
+            
+              // If the user said 'volume' then parse it even further
+            
+              else if (userSaid(result.text, '音量')) {
+            
+                // Check the current volume setting of the video
+            
+                var vol = Math.floor(video.volume * 10) / 10;
+            
+                // Increase the volume
+            
+                if (userSaid(result.text, '增加')) {
+            
+                  if (vol >= 0.9) video.volume = 1;
+            
+                  else video.volume += 0.1;
+            
+                  highlightCommand('vidVolInc');
+            
+                }
+
+                if (userSaid(result.text, '增大')) {
+            
+                  if (vol >= 0.9) video.volume = 1;
+      
+                  else video.volume += 0.1;
+      
+                  highlightCommand('vidVolInc');
+      
+                }
+
+                if (userSaid(result.text, '变大')) {
+            
+                  if (vol >= 0.9) video.volume = 1;
+      
+                  else video.volume += 0.1;
+      
+                  highlightCommand('vidVolInc');
+      
+                }
+
+
+                
+                // Decrease the volume
+                
+                else if (userSaid(result.text, '减小')) {
+                
+                  if (vol <= 0.1) video.volume = 0;
+                
+                  else video.volume -= 0.1;
+                
+                  highlightCommand('vidVolDec');
+                
+                }
+
+                else if (userSaid(result.text, '减少')) {
+                
+                if (vol <= 0.1) video.volume = 0;
+              
+                else video.volume -= 0.1;
+              
+                highlightCommand('vidVolDec');
+              
+                }
+
+                else if (userSaid(result.text, '变小')) {
+                
+                if (vol <= 0.1) video.volume = 0;
+              
+                else video.volume -= 0.1;
+              
+                highlightCommand('vidVolDec');
+              
+                }
+                
+                // Turn the volume off (mute)
+                
+                else if (userSaid(result.text, '关')) {
+                
+                  video.muted = true;
+                
+                  highlightCommand('vidVolOff');
+                                
+                
+                }
+
+                
+                // Turn the volume on (unmute)
+                
+                else if (userSaid(result.text, '开')) {
+                
+                  video.muted = false;
+                
+                  highlightCommand('vidVolOn');
+                
+                }
+                
+              }
+              
+            
+
+
+            recognizer.close();
+
+            recognizer = undefined;
+
+          },
+
+          function (err) {
+
+            startRecognizeOnceAsyncButton.disabled = false;
+
+            phraseDiv.innerHTML += err;
+
+            window.console.log(err);
+
+
+
+            recognizer.close();
+
+            recognizer = undefined;
+
+          }
+
+          );
+
+      });
+
+
+
+      if (!!window.SpeechSDK) {
+
+        SpeechSDK = window.SpeechSDK;
+
+        startRecognizeOnceAsyncButton.disabled = false;
+
+
+        document.getElementById('content').style.display = 'block';
+
+        document.getElementById('warning').style.display = 'none';
+
+      }
+
+    });
+
+  </script>
+
+  <!-- </quickstartcode> -->
+
+</body>
+
+</html>
